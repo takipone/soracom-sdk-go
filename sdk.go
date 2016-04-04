@@ -1012,7 +1012,7 @@ func (o *CredentialOptions) JSON() string {
 	return toJSON(o)
 }
 
-type CreatedCredential struct {
+type Credential struct {
 	CredentialId     string          `json:"credentialsId"`
 	Type             string          `json:"type"`
 	Description      string          `json:"description"`
@@ -1022,18 +1022,49 @@ type CreatedCredential struct {
 	LastUsedDateTime *TimestampMilli `json:"lastUsedDateTime"`
 }
 
-func (cc *CreatedCredential) String() string {
-	return toJSON(cc)
+func (c *Credential) String() string {
+	return toJSON(c)
 }
 
-func parseCreatedCredential(resp *http.Response) (*CreatedCredential, error) {
+func parseCredential(resp *http.Response) (*Credential, error) {
 	dec := json.NewDecoder(resp.Body)
-	var cc CreatedCredential
-	err := dec.Decode(&cc)
+	var c Credential
+	err := dec.Decode(&c)
 	if err != nil {
 		return nil, err
 	}
-	return &cc, nil
+	return &c, nil
+}
+
+func parseListCredentialsResponse(resp *http.Response) ([]Credential, *PaginationKeys, error) {
+	creds := make([]Credential, 0, 10)
+	dec := json.NewDecoder(resp.Body)
+
+	// read open bracket
+	_, err := dec.Token()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for dec.More() {
+		var c Credential
+		err = dec.Decode(&c)
+		if err != nil {
+			continue
+		}
+		creds = append(creds, c)
+	}
+
+	// read close bracket
+	_, err = dec.Token()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	linkHeader := resp.Header.Get(http.CanonicalHeaderKey("Link"))
+	pk := parseLinkHeader(linkHeader)
+
+	return creds, pk, nil
 }
 
 func tagsToJSON(tags []Tag) string {

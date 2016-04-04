@@ -1138,7 +1138,7 @@ func (ac *APIClient) CreateCoupon(options *CreatedCouponOptions) (*CreatedCoupon
 }
 
 // CreateCredential sends a request to create a brand-new credential
-func (ac *APIClient) CreateCredentialWithName(name string, options *CredentialOptions) (*CreatedCredential, error) {
+func (ac *APIClient) CreateCredentialWithName(name string, options *CredentialOptions) (*Credential, error) {
 	params := &apiParams{
 		method:      "POST",
 		path:        "/v1/credentials/" + name,
@@ -1155,10 +1155,30 @@ func (ac *APIClient) CreateCredentialWithName(name string, options *CredentialOp
 	}
 	defer resp.Body.Close()
 
-	cc, err := parseCreatedCredential(resp)
+	c, err := parseCredential(resp)
 	if err != nil {
 		return nil, err
 	}
 
-	return cc, nil
+	return c, nil
+}
+
+// ListCredentials lists credentials for the operator
+func (ac *APIClient) ListCredentials() ([]Credential, *PaginationKeys, error) {
+	params := &apiParams{
+		method: "GET",
+		path:   "/v1/credentials",
+	}
+	resp, err := ac.callAPI(params)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	creds, paginationKeys, err := parseListCredentialsResponse(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return creds, paginationKeys, nil
 }
